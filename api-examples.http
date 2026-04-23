@@ -1,0 +1,34 @@
+### Registrar paciente
+POST http://localhost:8080/api/auth/register/patient
+Content-Type: application/json
+
+{
+  "fullName": "Luis Perez",
+  "email": "luis@example.com",
+  "password": "Password123*",
+  "phone": "999999999",
+  "dateOfBirth": "1998-10-01",
+  "dni": "12345678"
+}
+
+### Registrar odontólogo
+POST http://localhost:8080/api/auth/register/dentist
+Content-Type: application/json
+
+{
+  "fullName": "Dra. Ana Torres",
+  "email": "ana@example.com",
+  "password": "Password123*",
+  "phone": "988888888",
+  "licenseNumber": "COP-001",
+  "specialty": "Ortodoncia"
+}
+
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "luis@example.com",
+  "password": "Password123*"
+}
