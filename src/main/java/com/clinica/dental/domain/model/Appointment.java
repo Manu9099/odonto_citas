@@ -49,6 +49,11 @@ public class Appointment extends BaseAuditableEntity {
     @Column(name = "cancelled_reason", columnDefinition = "TEXT")
     private String cancelledReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "treatment_id")
+    private Treatment treatment;
+
+
     @PrePersist
     public void onCreate() {
         OffsetDateTime now = OffsetDateTime.now();

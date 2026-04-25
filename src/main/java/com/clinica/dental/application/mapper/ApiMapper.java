@@ -4,6 +4,7 @@ import com.clinica.dental.api.dto.appointment.AppointmentResponse;
 import com.clinica.dental.api.dto.dentist.*;
 import com.clinica.dental.api.dto.payment.PaymentResponse;
 import com.clinica.dental.domain.model.*;
+import com.clinica.dental.api.dto.treatment.TreatmentResponse;
 
 public final class ApiMapper {
 
@@ -45,6 +46,7 @@ public final class ApiMapper {
                 appointment.getEndsAt(),
                 appointment.getDurationMinutes(),
                 appointment.getStatus(),
+                appointment.getTreatment() != null ? appointment.getTreatment().getId() : null,
                 appointment.getTreatmentType(),
                 appointment.getNotes(),
                 appointment.getCancelledReason()
@@ -65,4 +67,17 @@ public final class ApiMapper {
                 checkoutUrl
         );
     }
+    public static TreatmentResponse toTreatmentResponse(Treatment treatment) {
+        return new TreatmentResponse(
+                treatment.getId(),
+                treatment.getName(),
+                treatment.getCategory(),
+                treatment.getDefaultDurationMinutes(),
+                treatment.getMinDurationMinutes(),
+                treatment.getMaxDurationMinutes(),
+                treatment.getBasePrice(),
+                treatment.getActive()
+        );
+    }
+
 }

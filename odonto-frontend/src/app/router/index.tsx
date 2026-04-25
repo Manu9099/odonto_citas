@@ -3,6 +3,11 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell } from "../layouts/app-shell";
 import { LoginPage } from "../../features/auth/pages/login-page";
 import { DashboardPage } from "../../features/dashboard/pages/dashboard-page";
+import { AppointmentsPage } from "../../features/appointments/pages/appointments-page";
+import { DentistsPage } from "../../features/dentists/pages/dentists-page";
+import { PatientsPage } from "../../features/patients/pages/patients-page";
+import { PaymentsPage } from "../../features/payments/pages/payments-page";
+import { RemindersPage } from "../../features/reminders/pages/reminders-page";
 
 function RequireAuth() {
   const token = localStorage.getItem("access_token");
@@ -24,23 +29,7 @@ function GuestOnly() {
   return <Outlet />;
 }
 
-function ComingSoonPage({ title }: { title: string }) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">
-        Módulo
-      </p>
 
-      <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
-        {title}
-      </h1>
-
-      <p className="mt-2 text-slate-500">
-        Esta sección todavía está en construcción.
-      </p>
-    </div>
-  );
-}
 
 export const router = createBrowserRouter([
   {
@@ -56,35 +45,32 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       {
+        path: "/",
         element: <AppShell />,
         children: [
           {
-            path: "/",
+            index: true,
             element: <DashboardPage />,
           },
           {
-            path: "/agenda",
-            element: <ComingSoonPage title="Agenda" />,
+            path: "agenda",
+            element: <AppointmentsPage />,
           },
           {
-            path: "/pacientes",
-            element: <ComingSoonPage title="Pacientes" />,
+            path: "pacientes",
+            element: <PatientsPage />,
           },
           {
-            path: "/odontologos",
-            element: <ComingSoonPage title="Odontólogos" />,
+            path: "odontologos",
+            element: <DentistsPage />,
           },
           {
-            path: "/pagos",
-            element: <ComingSoonPage title="Pagos" />,
+            path: "pagos",
+            element: <PaymentsPage />,
           },
           {
-            path: "/recordatorios",
-            element: <ComingSoonPage title="Recordatorios" />,
-          },
-          {
-            path: "/configuracion",
-            element: <ComingSoonPage title="Configuración" />,
+            path: "recordatorios",
+            element: <RemindersPage />,
           },
         ],
       },

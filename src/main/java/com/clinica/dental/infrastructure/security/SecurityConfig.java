@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/api/payments/webhooks/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/dentists/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/treatments/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

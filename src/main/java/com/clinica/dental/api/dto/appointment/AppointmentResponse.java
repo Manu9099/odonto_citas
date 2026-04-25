@@ -14,6 +14,7 @@ public record AppointmentResponse(
         OffsetDateTime endsAt,
         Integer durationMinutes,
         AppointmentStatus status,
+        Long treatmentId,
         String treatmentType,
         String notes,
         String cancelledReason

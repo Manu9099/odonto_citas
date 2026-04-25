@@ -24,6 +24,7 @@ public class AppointmentService {
     private final PatientRepository patientRepository;
     private final NotificationRepository notificationRepository;
     private final CurrentUserService currentUserService;
+    private final TreatmentRepository treatmentRepository;
 
     @Transactional
     public AppointmentResponse create(AppointmentCreateRequest request) {
@@ -39,7 +40,14 @@ public class AppointmentService {
         Dentist dentist = dentistRepository.findById(request.dentistId())
                 .orElseThrow(() -> new NotFoundException("Odontólogo no encontrado"));
 
-        int duration = request.durationMinutes() == null ? 30 : request.durationMinutes();
+        Treatment treatment = treatmentRepository.findById(request.treatmentId())
+                .orElseThrow(() -> new NotFoundException("Tratamiento no encontrado"));
+
+        if (!Boolean.TRUE.equals(treatment.getActive())) {
+            throw new BadRequestException("El tratamiento seleccionado no está activo");
+        }
+
+        int duration = treatment.getDefaultDurationMinutes();
 
         OffsetDateTime newStart = request.scheduledAt();
         OffsetDateTime newEnd = newStart.plusMinutes(duration);
@@ -64,7 +72,8 @@ public class AppointmentService {
                 .scheduledAt(newStart)
                 .durationMinutes(duration)
                 .status(AppointmentStatus.PENDING)
-                .treatmentType(request.treatmentType())
+                .treatment(treatment)
+                .treatmentType(treatment.getName())
                 .notes(request.notes())
                 .build());
 
