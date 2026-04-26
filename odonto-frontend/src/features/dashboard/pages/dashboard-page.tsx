@@ -1,334 +1,373 @@
 import {
+  Activity,
+  CalendarCheck,
   CalendarClock,
-  CreditCard,
-  Stethoscope,
-  Users,
-  Wallet,
-  Clock,
-  AlertCircle,
   CheckCircle2,
+  Clock,
+  CreditCard,
+  DollarSign,
+  WalletCards,
 } from "lucide-react";
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { api } from "../../../lib/api/client";
-import { PageHeader } from "../../../components/shared/page-header";
-import { SectionCard } from "../../../components/shared/section-card";
-import { StatCard } from "../../../components/shared/stat-card";
-import { StatusBadge } from "../../../components/shared/status-badge";
 
-type AppointmentStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "CANCELLED"
-  | "COMPLETED"
-  | "PAID"
-  | string;
+type PaymentStatus = "PENDING" | "APPROVED" | "REJECTED" | "REFUNDED";
 
-type Appointment = {
-  id: number;
-  dentistId: number;
-  dentistName: string;
-  patientId: number;
-  patientName: string;
-  scheduledAt: string;
-  endsAt: string;
-  durationMinutes: number;
-  status: AppointmentStatus;
-  treatmentType: string;
-  notes?: string | null;
-  cancelledReason?: string | null;
+type PaymentStatusSummary = {
+  status: PaymentStatus;
+  count: number;
+  amount: number;
 };
 
-type CalendarDayResponse = {
+type DashboardDayRevenue = {
   date: string;
-  label: string;
-  appointments: Appointment[];
+  amount: number;
 };
 
-type Dentist = {
-  id: number;
-  fullName?: string;
-  name?: string;
-  specialty?: string;
+type DashboardSummary = {
+  todayAppointments: number;
+  pendingAppointments: number;
+  confirmedAppointments: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  noShowAppointments: number;
+  paidAppointments: number;
+  unpaidAppointments: number;
+  pendingPayments: number;
+  approvedRevenue: number;
+  pendingRevenue: number;
+  paymentsByStatus: PaymentStatusSummary[];
+  revenueByDay: DashboardDayRevenue[];
 };
 
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
+function formatMoney(value: number | string | null | undefined) {
+  return new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+  }).format(Number(value ?? 0));
 }
 
-function formatHour(date?: string) {
-  if (!date) return "--:--";
-
+function formatDateLabel(value: string) {
   return new Intl.DateTimeFormat("es-PE", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+    weekday: "short",
+    day: "2-digit",
+  }).format(new Date(`${value}T00:00:00-05:00`));
 }
 
-function normalizeStatus(status: AppointmentStatus) {
-  const value = String(status).toUpperCase();
-
-  if (value === "CONFIRMED") return "Confirmada";
-  if (value === "PENDING") return "Pendiente";
-  if (value === "PAID") return "Pagada";
-  if (value === "COMPLETED") return "Completada";
-  if (value === "CANCELLED") return "Cancelada";
-
+function statusLabel(status: PaymentStatus) {
+  if (status === "APPROVED") return "Pagados";
+  if (status === "PENDING") return "Pendientes";
+  if (status === "REJECTED") return "Rechazados";
+  if (status === "REFUNDED") return "Devueltos";
   return status;
 }
 
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+}: {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="rounded-2xl bg-cyan-50 p-3 text-cyan-600">
+          {icon}
+        </span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Resumen
+        </span>
+      </div>
+
+      <p className="mt-4 text-3xl font-bold text-slate-900">{value}</p>
+
+      <p className="mt-1 text-sm font-semibold text-slate-700">{title}</p>
+      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+    </article>
+  );
+}
+
 export function DashboardPage() {
-  const today = todayIsoDate();
-
   const {
-    data: calendarDay,
-    isLoading: loadingCalendar,
-    isError: calendarError,
-  } = useQuery({
-    queryKey: ["dashboard-calendar-day", today],
+    data,
+    isLoading,
+    isError,
+  } = useQuery<DashboardSummary>({
+    queryKey: ["dashboard-summary"],
     queryFn: async () => {
-      const response = await api.get<CalendarDayResponse>(
-        `/appointments/calendar/day?date=${today}`
-      );
-
+      const response = await api.get<DashboardSummary>("/dashboard/summary");
       return response.data;
     },
   });
 
-  const { data: myAppointments = [] } = useQuery({
-    queryKey: ["dashboard-my-appointments"],
-    queryFn: async () => {
-      const response = await api.get<Appointment[]>("/appointments/me");
-      return response.data;
-    },
-  });
+  const revenueByDay =
+    data?.revenueByDay.map((item) => ({
+      ...item,
+      label: formatDateLabel(item.date),
+      amount: Number(item.amount ?? 0),
+    })) ?? [];
 
-  const { data: dentists = [] } = useQuery({
-    queryKey: ["dashboard-dentists"],
-    queryFn: async () => {
-      const response = await api.get<Dentist[]>("/dentists");
-      return response.data;
-    },
-  });
+  const approvedPayments =
+    data?.paymentsByStatus.find((item) => item.status === "APPROVED") ?? null;
 
-  const todayAppointments = calendarDay?.appointments ?? [];
+  const pendingPayments =
+    data?.paymentsByStatus.find((item) => item.status === "PENDING") ?? null;
 
-  const dashboardStats = useMemo(() => {
-    const pendingToday = todayAppointments.filter(
-      (item) => String(item.status).toUpperCase() === "PENDING"
-    ).length;
-
-    const confirmedToday = todayAppointments.filter(
-      (item) => String(item.status).toUpperCase() === "CONFIRMED"
-    ).length;
-
-    const completedToday = todayAppointments.filter(
-      (item) => String(item.status).toUpperCase() === "COMPLETED"
-    ).length;
-
-    return {
-      totalToday: todayAppointments.length,
-      pendingToday,
-      confirmedToday,
-      completedToday,
-      totalDentists: dentists.length,
-      totalMyAppointments: myAppointments.length,
-    };
-  }, [todayAppointments, dentists.length, myAppointments.length]);
+  if (isError) {
+    return (
+      <div className="rounded-3xl border border-red-100 bg-red-50 p-5 text-sm text-red-700">
+        No se pudo cargar el dashboard. Revisa que el backend esté corriendo y
+        que tu sesión esté activa.
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 pb-8">
-      <PageHeader
-        eyebrow="Panel administrativo"
-        title="Dashboard"
-        description="Resumen general de citas, odontólogos y actividad del día conectado al backend."
-      />
-
-      {calendarError && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          No se pudo traer la agenda del backend. Revisa que el backend esté
-          prendido en <strong>http://localhost:8080</strong> y que tengas token
-          si el endpoint está protegido.
+    <div className="space-y-6">
+      <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-cyan-600">
+            Panel principal
+          </p>
+          <h1 className="mt-1 text-3xl font-bold text-slate-900">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Resumen de citas, pagos e ingresos de la clínica.
+          </p>
         </div>
-      )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+          Ingresos aprobados:{" "}
+          <span className="font-bold text-emerald-600">
+            {isLoading ? "..." : formatMoney(data?.approvedRevenue)}
+          </span>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Citas hoy"
-          value={loadingCalendar ? "..." : String(dashboardStats.totalToday)}
-          hint={`${dashboardStats.pendingToday} pendientes`}
-          icon={CalendarClock}
+          title="Citas de hoy"
+          value={isLoading ? "..." : data?.todayAppointments ?? 0}
+          subtitle="Programadas para la fecha actual"
+          icon={<CalendarClock className="h-5 w-5" />}
         />
 
         <StatCard
-          label="Confirmadas"
-          value={loadingCalendar ? "..." : String(dashboardStats.confirmedToday)}
-          hint="Citas confirmadas para hoy"
-          icon={CheckCircle2}
+          title="Citas confirmadas"
+          value={isLoading ? "..." : data?.confirmedAppointments ?? 0}
+          subtitle="Pacientes con atención confirmada"
+          icon={<CalendarCheck className="h-5 w-5" />}
         />
 
         <StatCard
-          label="Odontólogos"
-          value={String(dashboardStats.totalDentists)}
-          hint="Registrados en el sistema"
-          icon={Stethoscope}
+          title="Citas pendientes"
+          value={isLoading ? "..." : data?.pendingAppointments ?? 0}
+          subtitle="Aún requieren confirmación"
+          icon={<Clock className="h-5 w-5" />}
         />
 
         <StatCard
-          label="Mis citas"
-          value={String(dashboardStats.totalMyAppointments)}
-          hint="Total relacionado a mi usuario"
-          icon={Users}
+          title="Citas completadas"
+          value={isLoading ? "..." : data?.completedAppointments ?? 0}
+          subtitle="Atenciones finalizadas"
+          icon={<CheckCircle2 className="h-5 w-5" />}
         />
-      </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
-        <SectionCard
-          title="Agenda de hoy"
-          description={calendarDay?.label ?? `Citas programadas para ${today}`}
-        >
-          {loadingCalendar ? (
-            <p className="text-sm text-slate-500">Cargando citas...</p>
-          ) : todayAppointments.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-              <p className="font-semibold text-slate-800">
-                No hay citas para hoy
-              </p>
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+              <WalletCards className="h-5 w-5" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Pagos
+            </span>
+          </div>
+
+          <p className="mt-4 text-3xl font-bold text-slate-900">
+            {isLoading ? "..." : data?.paidAppointments ?? 0}
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            Citas pagadas
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Con pago aprobado registrado.
+          </p>
+        </article>
+
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Pendiente
+            </span>
+          </div>
+
+          <p className="mt-4 text-3xl font-bold text-slate-900">
+            {isLoading ? "..." : data?.unpaidAppointments ?? 0}
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            Citas sin pago aprobado
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            No incluye citas canceladas.
+          </p>
+        </article>
+
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="rounded-2xl bg-blue-50 p-3 text-blue-600">
+              <DollarSign className="h-5 w-5" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Ingresos
+            </span>
+          </div>
+
+          <p className="mt-4 text-3xl font-bold text-slate-900">
+            {isLoading ? "..." : formatMoney(data?.approvedRevenue)}
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            Cobrado
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Pagos aprobados acumulados.
+          </p>
+        </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Ingresos de los últimos 7 días
+              </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Cuando el backend devuelva citas, aparecerán aquí.
+                Suma de pagos aprobados por día.
               </p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {todayAppointments.map((item) => (
-                <article
-                  key={item.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm md:flex-row md:items-center md:justify-between"
+
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              {formatMoney(data?.approvedRevenue)}
+            </span>
+          </div>
+
+          <div className="h-72">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                Cargando gráfico...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueByDay}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <Tooltip
+                    formatter={(value) => formatMoney(Number(value))}
+                    labelFormatter={(label) => `Día: ${label}`}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    name="Ingresos"
+                    radius={[12, 12, 0, 0]}
+                    fill="#0891b2"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-lg font-bold text-slate-900">
+              Estado de pagos
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Control rápido de caja.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {isLoading ? (
+              <p className="text-sm text-slate-500">Cargando pagos...</p>
+            ) : (
+              data?.paymentsByStatus.map((item) => (
+                <div
+                  key={item.status}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-950">
-                      {item.patientName}
-                    </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-2xl bg-white p-2 text-cyan-600">
+                        <Activity className="h-4 w-4" />
+                      </span>
 
-                    <p className="truncate text-sm text-slate-500">
-                      {item.treatmentType || "Tratamiento no especificado"}
-                    </p>
-
-                    <p className="mt-1 truncate text-xs text-slate-400">
-                      {item.dentistName}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-                      <Clock className="size-4 text-slate-400" />
-                      {formatHour(item.scheduledAt)}
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          {statusLabel(item.status)}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {item.count} registro
+                          {item.count === 1 ? "" : "s"}
+                        </p>
+                      </div>
                     </div>
 
-                    <StatusBadge status={normalizeStatus(item.status)} />
+                    <p className="text-sm font-bold text-slate-900">
+                      {formatMoney(item.amount)}
+                    </p>
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Actividad rápida"
-          description="Indicadores calculados desde las citas reales"
-        >
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                    Pendientes
-                  </p>
-                  <p className="mt-1 text-3xl font-bold text-blue-950">
-                    {dashboardStats.pendingToday}
-                  </p>
                 </div>
-                <AlertCircle className="size-8 text-blue-400" />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    Completadas hoy
-                  </p>
-                  <p className="mt-1 text-3xl font-bold text-emerald-950">
-                    {dashboardStats.completedToday}
-                  </p>
-                </div>
-                <CheckCircle2 className="size-8 text-emerald-400" />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                    Pagos
-                  </p>
-                  <p className="mt-1 text-3xl font-bold text-amber-950">
-                    API parcial
-                  </p>
-                  <p className="mt-1 text-xs text-amber-700">
-                    Tu backend tiene pago por cita, pero todavía no lista todos
-                    los pagos.
-                  </p>
-                </div>
-                <Wallet className="size-8 text-amber-400" />
-              </div>
-            </div>
+              ))
+            )}
           </div>
-        </SectionCard>
-      </div>
 
-      <SectionCard
-        title="Odontólogos registrados"
-        description="Datos cargados desde /api/dentists"
-      >
-        {dentists.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No hay odontólogos cargados todavía.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-950">
-                    Odontólogo
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-950">
-                    Especialidad
-                  </th>
-                </tr>
-              </thead>
+          <div className="mt-5 rounded-2xl bg-cyan-50 p-4">
+            <p className="text-sm font-semibold text-cyan-900">
+              Resumen rápido
+            </p>
 
-              <tbody>
-                {dentists.map((dentist) => (
-                  <tr
-                    key={dentist.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {dentist.fullName ?? dentist.name ?? "Sin nombre"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {dentist.specialty ?? "No registrada"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p className="mt-2 text-sm text-cyan-800">
+              Pagados:{" "}
+              <span className="font-bold">
+                {approvedPayments?.count ?? 0}
+              </span>
+            </p>
+
+            <p className="mt-1 text-sm text-cyan-800">
+              Pagos pendientes:{" "}
+              <span className="font-bold">
+                {pendingPayments?.count ?? 0}
+              </span>
+            </p>
           </div>
-        )}
-      </SectionCard>
+        </article>
+      </section>
     </div>
   );
 }

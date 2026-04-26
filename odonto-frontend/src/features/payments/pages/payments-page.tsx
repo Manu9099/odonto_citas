@@ -169,15 +169,10 @@ export function PaymentsPage() {
     queryFn: async () => {
       const rows = await Promise.all(
         appointments.map(async (appointment) => {
-          try {
-            const response = await api.get<PaymentResponse>(
-              `/payments/appointment/${appointment.id}`
+          const response = await api.get<PaymentResponse | "">(
+           `/payments/appointment/${appointment.id}`
             );
-
-            return response.data;
-          } catch {
-            return null;
-          }
+             return response.data || null;
         })
       );
 

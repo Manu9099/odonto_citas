@@ -7,7 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.http.ResponseEntity;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
@@ -22,10 +22,13 @@ public class PaymentController {
     }
 
     @GetMapping("/appointment/{appointmentId}")
-    public PaymentResponse getByAppointment(@PathVariable Long appointmentId) {
-        return paymentService.getByAppointment(appointmentId);
+    public ResponseEntity<PaymentResponse> getByAppointment(
+            @PathVariable Long appointmentId
+    ) {
+        return paymentService.getByAppointment(appointmentId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
-
     @PostMapping("/webhooks/{provider}")
     public ApiResponse webhookApproved(@PathVariable String provider, @RequestParam String paymentId) {
         paymentService.markApproved(paymentId);

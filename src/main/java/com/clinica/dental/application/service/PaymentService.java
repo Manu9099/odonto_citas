@@ -11,12 +11,14 @@ import com.clinica.dental.infrastructure.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.clinica.dental.domain.enums.PaymentProvider;
+import com.clinica.dental.domain.enums.PaymentStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,16 +50,21 @@ public class PaymentService {
 
         payment.setProviderPaymentId(result.externalPaymentId());
         payment.setProviderRef(result.rawReference());
+
+        if (request.provider() == PaymentProvider.CASH) {
+            payment.setStatus(PaymentStatus.APPROVED);
+            payment.setPaidAt(OffsetDateTime.now());
+        }
+
         paymentRepository.save(payment);
 
         return ApiMapper.toPaymentResponse(payment, result.checkoutUrl());
     }
 
     @Transactional(readOnly = true)
-    public PaymentResponse getByAppointment(Long appointmentId) {
-        Payment payment = paymentRepository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new NotFoundException("Pago no encontrado"));
-        return ApiMapper.toPaymentResponse(payment, null);
+    public Optional<PaymentResponse> getByAppointment(Long appointmentId) {
+        return paymentRepository.findByAppointmentId(appointmentId)
+                .map(payment -> ApiMapper.toPaymentResponse(payment, null));
     }
 
     @Transactional

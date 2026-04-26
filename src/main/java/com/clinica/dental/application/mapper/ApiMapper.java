@@ -5,7 +5,10 @@ import com.clinica.dental.api.dto.dentist.*;
 import com.clinica.dental.api.dto.payment.PaymentResponse;
 import com.clinica.dental.domain.model.*;
 import com.clinica.dental.api.dto.treatment.TreatmentResponse;
-
+import com.clinica.dental.api.dto.prescription.PrescriptionItemResponse;
+import com.clinica.dental.api.dto.prescription.PrescriptionResponse;
+import com.clinica.dental.domain.model.Prescription;
+import com.clinica.dental.domain.model.PrescriptionItem;
 public final class ApiMapper {
 
     private ApiMapper() {}
@@ -77,6 +80,45 @@ public final class ApiMapper {
                 treatment.getMaxDurationMinutes(),
                 treatment.getBasePrice(),
                 treatment.getActive()
+        );
+    }
+
+    public static PrescriptionResponse toPrescriptionResponse(Prescription prescription) {
+        return new PrescriptionResponse(
+                prescription.getId(),
+                prescription.getAppointment().getId(),
+
+                prescription.getPatient().getId(),
+                prescription.getPatient().getUser().getFullName(),
+
+                prescription.getDentist().getId(),
+                prescription.getDentist().getUser().getFullName(),
+
+                prescription.getDiagnosis(),
+                prescription.getIndications(),
+                prescription.getNotes(),
+                prescription.getNextControlDate(),
+
+                prescription.getItems()
+                        .stream()
+                        .map(ApiMapper::toPrescriptionItemResponse)
+                        .toList(),
+
+                prescription.getCreatedAt(),
+                prescription.getUpdatedAt()
+        );
+    }
+
+    public static PrescriptionItemResponse toPrescriptionItemResponse(
+            PrescriptionItem item
+    ) {
+        return new PrescriptionItemResponse(
+                item.getId(),
+                item.getMedicationName(),
+                item.getDose(),
+                item.getFrequency(),
+                item.getDuration(),
+                item.getInstructions()
         );
     }
 
