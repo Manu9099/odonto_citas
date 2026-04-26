@@ -347,46 +347,91 @@ export function AppointmentsPage() {
         className="overflow-hidden"
       >
         <div className="rounded-2xl border border-slate-200 bg-white p-2">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            slotMinTime="08:00:00"
-            slotMaxTime="20:00:00"
-            allDaySlot={false}
-            height="auto"
-            locale="es"
-            selectable
-            nowIndicator
-            events={calendarEvents}
-            dateClick={(info) => {
-              const clickedDate = info.date;
-              const date = clickedDate.toISOString().slice(0, 10);
-              const time = clickedDate.toTimeString().slice(0, 5);
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="timeGridWeek"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
+          }}
+          buttonText={{
+            today: "Hoy",
+            month: "Mes",
+            week: "Semana",
+            day: "Día",
+          }}
+          titleFormat={{
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }}
+          dayHeaderFormat={{
+            weekday: "short",
+            day: "numeric",
+            month: "numeric",
+          }}
+          slotLabelFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
+          eventTimeFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
+          slotDuration="00:30:00"
+          slotLabelInterval="01:00"
+          slotMinTime="08:00:00"
+          slotMaxTime="20:00:00"
+          allDaySlot={false}
+          expandRows
+          height="auto"
+          locale="es"
+          selectable
+          nowIndicator
+          events={calendarEvents}
+          eventContent={(eventInfo) => (
+            <div className="space-y-0.5 overflow-hidden px-1 py-0.5">
+              <p className="truncate text-xs font-bold">
+                {eventInfo.timeText}
+              </p>
+              <p className="truncate text-xs">
+                {eventInfo.event.title}
+              </p>
+            </div>
+          )}
+          eventClassNames={() => [
+            "rounded-xl",
+            "border-0",
+            "shadow-sm",
+            "overflow-hidden",
+          ]}
+          dateClick={(info) => {
+            const clickedDate = info.date;
+            const date = clickedDate.toISOString().slice(0, 10);
+            const time = clickedDate.toTimeString().slice(0, 5);
 
-              updateForm("date", date);
+            updateForm("date", date);
 
-              if (time !== "00:00") {
-                updateForm("time", time);
-              }
-
-              openNewAppointmentModal();
-            }}
-            eventClick={(info) => {
-              const start = info.event.start;
-              if (!start) return;
-
-              const date = start.toISOString().slice(0, 10);
-              const time = start.toTimeString().slice(0, 5);
-
-              updateForm("date", date);
+            if (time !== "00:00") {
               updateForm("time", time);
-            }}
-          />
+            }
+
+            openNewAppointmentModal();
+          }}
+          eventClick={(info) => {
+            const start = info.event.start;
+            if (!start) return;
+
+            const date = start.toISOString().slice(0, 10);
+            const time = start.toTimeString().slice(0, 5);
+
+            updateForm("date", date);
+            updateForm("time", time);
+          }}
+        />
         </div>
       </SectionCard>
 

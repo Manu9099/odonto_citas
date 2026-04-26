@@ -6,6 +6,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Stethoscope,
   UserCircle,
@@ -60,9 +62,11 @@ function formatRole(role?: string) {
 function SidebarContent({
   onNavigate,
   onLogout,
+  collapsed = false,
 }: {
   onNavigate?: () => void;
   onLogout: () => void;
+  collapsed?: boolean;
 }) {
   const user = getStoredUser();
 
@@ -72,19 +76,26 @@ function SidebarContent({
 
   return (
     <>
-      <div className="flex items-center gap-4">
-        <div className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-xl font-black text-white shadow-lg shadow-cyan-500/20">
+      <div
+        className={cn(
+          "flex items-center",
+          collapsed ? "justify-center" : "gap-4"
+        )}
+      >
+        <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-xl font-black text-white shadow-lg shadow-cyan-500/20">
           OC
         </div>
 
-        <div>
-          <h1 className="text-lg font-black tracking-tight text-slate-950">
-            OdontoCitas Pro
-          </h1>
-          <p className="text-sm font-medium text-slate-500">
-            Gestión clínica
-          </p>
-        </div>
+        {!collapsed && (
+          <div>
+            <h1 className="text-lg font-black tracking-tight text-slate-950">
+              OdontoCitas Pro
+            </h1>
+            <p className="text-sm font-medium text-slate-500">
+              Gestión clínica
+            </p>
+          </div>
+        )}
       </div>
 
       <nav className="mt-9 space-y-2">
@@ -97,58 +108,73 @@ function SidebarContent({
               to={item.to}
               end={item.to === "/"}
               onClick={onNavigate}
+              title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-base font-bold transition",
+                  "flex items-center rounded-2xl py-3 text-base font-bold transition",
+                  collapsed ? "justify-center px-3" : "gap-3 px-4",
                   isActive
                     ? "bg-blue-50 text-blue-700"
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
                 )
               }
             >
-              <Icon className="size-5" />
-              {item.label}
+              <Icon className="size-5 shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
             </NavLink>
           );
         })}
       </nav>
 
       <div className="mt-auto space-y-4">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-center gap-3">
-            <div className="grid size-11 place-items-center rounded-2xl bg-white text-slate-700 shadow-sm">
-              <UserCircle className="size-6" />
+        {!collapsed ? (
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                <UserCircle className="size-6" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-slate-950">
+                  {userName}
+                </p>
+
+                <p className="truncate text-xs font-medium text-slate-500">
+                  {userEmail}
+                </p>
+              </div>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-slate-950">
-                {userName}
-              </p>
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-3 py-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                Rol
+              </span>
 
-              <p className="truncate text-xs font-medium text-slate-500">
-                {userEmail}
-              </p>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                {userRole}
+              </span>
             </div>
           </div>
-
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-3 py-2">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-              Rol
-            </span>
-
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-              {userRole}
-            </span>
+        ) : (
+          <div
+            title={`${userName} · ${userRole}`}
+            className="grid size-12 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700"
+          >
+            <UserCircle className="size-6" />
           </div>
-        </div>
+        )}
 
         <button
           type="button"
           onClick={onLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
+          title={collapsed ? "Cerrar sesión" : undefined}
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-600 transition hover:bg-red-100",
+            collapsed && "px-0"
+          )}
         >
           <LogOut className="size-4" />
-          Cerrar sesión
+          {!collapsed && "Cerrar sesión"}
         </button>
       </div>
     </>
@@ -158,6 +184,7 @@ function SidebarContent({
 export function AppShell() {
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   function handleLogout() {
     localStorage.removeItem("access_token");
@@ -170,9 +197,30 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       {/* Sidebar desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-80 flex-col border-r border-slate-200 bg-white px-6 py-7 shadow-sm lg:flex">
-        <SidebarContent onLogout={handleLogout} />
-      </aside>
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-slate-200 bg-white py-7 shadow-sm transition-all duration-300 lg:flex",
+        sidebarCollapsed ? "w-24 px-4" : "w-80 px-6"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setSidebarCollapsed((value) => !value)}
+        className="absolute -right-4 top-7 z-40 grid size-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-950"
+        aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+      >
+        {sidebarCollapsed ? (
+          <PanelLeftOpen className="size-4" />
+        ) : (
+          <PanelLeftClose className="size-4" />
+        )}
+      </button>
+
+      <SidebarContent
+     onLogout={handleLogout}
+     collapsed={sidebarCollapsed}
+      />
+    </aside>
 
       {/* Header mobile */}
       <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur lg:hidden">
@@ -232,13 +280,19 @@ export function AppShell() {
         </div>
 
         <SidebarContent
-          onNavigate={() => setMobileSidebarOpen(false)}
-          onLogout={handleLogout}
+        onNavigate={() => setMobileSidebarOpen(false)}
+        onLogout={handleLogout}
+        collapsed={false}
         />
       </aside>
 
       {/* Content */}
-      <main className="min-h-screen lg:pl-80">
+     <main
+       className={cn(
+         "min-h-screen transition-all duration-300",
+         sidebarCollapsed ? "lg:pl-24" : "lg:pl-80"
+       )}
+     >
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <Outlet />
         </div>
