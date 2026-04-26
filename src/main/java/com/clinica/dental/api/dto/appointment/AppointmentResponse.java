@@ -1,7 +1,6 @@
 package com.clinica.dental.api.dto.appointment;
 
 import com.clinica.dental.domain.enums.AppointmentStatus;
-
 import java.time.OffsetDateTime;
 
 public record AppointmentResponse(

@@ -7,7 +7,6 @@ import {
   Phone,
   Search,
   Stethoscope,
-  UserRound,
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";

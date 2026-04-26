@@ -1,6 +1,4 @@
 import {
-  Banknote,
-  CalendarClock,
   CheckCircle2,
   CreditCard,
   DollarSign,
@@ -11,7 +9,7 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../../../lib/api/client";
