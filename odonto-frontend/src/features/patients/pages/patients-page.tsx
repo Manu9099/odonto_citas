@@ -21,29 +21,12 @@ import { PageHeader } from "../../../components/shared/page-header";
 import { api } from "../../../lib/api/client";
 import { cn } from "../../../lib/utils/cn";
 
-type AppointmentStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "NO_SHOW";
-
-type Appointment = {
-  id: number;
-  dentistId?: number;
-  dentistName?: string;
-  patientId: number;
-  patientName: string;
-  scheduledAt: string;
-  endsAt?: string;
-  durationMinutes?: number;
-  status: AppointmentStatus;
-  treatmentId?: number | null;
-  treatmentType?: string | null;
-  amountDue?: number | string | null;
-  notes?: string | null;
-  cancelledReason?: string | null;
-};
+import {
+  getMyAppointments,
+  updateAppointmentStatus,
+  type Appointment,
+  type AppointmentStatus,
+} from "../../appointments/api/appointments.api";
 
 type PatientSummary = {
   id: number;
@@ -53,11 +36,14 @@ type PatientSummary = {
   totalAppointments: number;
   nextAppointment?: Appointment;
   lastAppointment?: Appointment;
+  confirmedAppointments: number;
+  noShowAppointments: number;
   completedAppointments: number;
   pendingAppointments: number;
   cancelledAppointments: number;
   dentists: string[];
   treatments: string[];
+
 };
 
 type PrescriptionItemResponse = {
@@ -197,6 +183,9 @@ function getErrorMessage(error: unknown) {
     };
     message?: string;
   };
+  function getStatusValue(status?: AppointmentStatus | string | null) {
+    return String(status ?? "").toUpperCase();
+  }
 
   return (
     apiError.response?.data?.message ||
@@ -273,21 +262,23 @@ function buildPatientsFromAppointments(appointments: Appointment[]) {
         (appointment) => appointment.status === "NO_SHOW"
       ).length;
 
-   return {
-     id: patientId,
-     fullName: firstAppointment.patientName,
-     email: undefined,
-     phone: undefined,
-     totalAppointments: sorted.length,
-     nextAppointment: futureAppointments[0],
-     lastAppointment:
-       pastAppointments[pastAppointments.length - 1] ?? sorted[sorted.length - 1],
-     completedAppointments,
-     pendingAppointments,
-     cancelledAppointments,
-     dentists,
-     treatments,
-   } satisfies PatientSummary;
+return {
+  id: patientId,
+  fullName: firstAppointment.patientName,
+  email: undefined,
+  phone: undefined,
+  totalAppointments: sorted.length,
+  nextAppointment: futureAppointments[0],
+  lastAppointment:
+    pastAppointments[pastAppointments.length - 1] ?? sorted[sorted.length - 1],
+  completedAppointments,
+  pendingAppointments,
+  confirmedAppointments,
+  cancelledAppointments,
+  noShowAppointments,
+  dentists,
+  treatments,
+} satisfies PatientSummary;
     }
   );
 }
@@ -313,18 +304,15 @@ export function PatientsPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const {
-    data: appointments = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<Appointment[]>({
-    queryKey: ["patients-from-appointments"],
-    queryFn: async () => {
-      const response = await api.get<Appointment[]>("/appointments/me");
-      return response.data;
-    },
-  });
+const {
+  data: appointments = [],
+  isLoading,
+  isError,
+  refetch,
+} = useQuery<Appointment[]>({
+  queryKey: ["patients-from-appointments"],
+  queryFn: getMyAppointments,
+});
 
   const patients = useMemo(
     () => buildPatientsFromAppointments(appointments),
@@ -437,10 +425,7 @@ export function PatientsPage() {
 
       setUpdatingAppointmentId(appointmentId);
 
-      await api.patch(`/appointments/${appointmentId}/status`, {
-        status: nextStatus,
-        cancelledReason,
-      });
+    await updateAppointmentStatus(appointmentId, nextStatus, cancelledReason);
 
       await refetch();
 
@@ -794,28 +779,27 @@ export function PatientsPage() {
                         )}
                       />
                     </div>
-
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {patient.nextAppointment && (
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                          Próxima:{" "}
-                          {formatDate(patient.nextAppointment.scheduledAt)}
-                        </span>
-                      )}
+                    {patient.confirmedAppointments > 0 && (
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                        {patient.confirmedAppointments} confirmada
+                        {patient.confirmedAppointments === 1 ? "" : "s"}
+                      </span>
+                    )}
 
-                      {patient.pendingAppointments > 0 && (
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                          {patient.pendingAppointments} pendiente
-                          {patient.pendingAppointments === 1 ? "" : "s"}
-                        </span>
-                      )}
+                    {patient.pendingAppointments > 0 && (
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                        {patient.pendingAppointments} pendiente
+                        {patient.pendingAppointments === 1 ? "" : "s"}
+                      </span>
+                    )}
 
-                      {patient.completedAppointments > 0 && (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                          {patient.completedAppointments} completada
-                          {patient.completedAppointments === 1 ? "" : "s"}
-                        </span>
-                      )}
+                    {patient.completedAppointments > 0 && (
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                        {patient.completedAppointments} completada
+                        {patient.completedAppointments === 1 ? "" : "s"}
+                      </span>
+                    )}
                     </div>
                   </button>
                 );

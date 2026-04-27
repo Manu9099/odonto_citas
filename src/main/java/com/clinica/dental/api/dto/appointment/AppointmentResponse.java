@@ -1,6 +1,8 @@
 package com.clinica.dental.api.dto.appointment;
 
 import com.clinica.dental.domain.enums.AppointmentStatus;
+
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record AppointmentResponse(
@@ -15,6 +17,7 @@ public record AppointmentResponse(
         AppointmentStatus status,
         Long treatmentId,
         String treatmentType,
+        BigDecimal treatmentBasePrice,
         String notes,
         String cancelledReason
 ) {

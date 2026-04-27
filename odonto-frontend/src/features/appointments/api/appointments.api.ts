@@ -19,6 +19,7 @@ export type Appointment = {
   status: AppointmentStatus;
   treatmentId: number | null;
   treatmentType: string | null;
+  treatmentBasePrice?: number | string | null;
   notes: string | null;
   cancelledReason: string | null;
 };

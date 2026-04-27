@@ -51,6 +51,7 @@ public final class ApiMapper {
                 appointment.getStatus(),
                 appointment.getTreatment() != null ? appointment.getTreatment().getId() : null,
                 appointment.getTreatmentType(),
+                appointment.getTreatment() != null ? appointment.getTreatment().getBasePrice() : null,
                 appointment.getNotes(),
                 appointment.getCancelledReason()
         );

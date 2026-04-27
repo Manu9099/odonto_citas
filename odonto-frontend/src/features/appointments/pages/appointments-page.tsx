@@ -544,7 +544,7 @@ export function AppointmentsPage() {
                   <div className="mt-3 space-y-1 text-xs font-medium text-slate-500">
                     <p>Dr(a). {appointment.dentistName}</p>
                     <p>Paciente: {appointment.patientName}</p>
-                    <p>{appointment.durationMinutes} min</p>
+                   {appointment.durationMinutes} min · {formatPrice(appointment.treatmentBasePrice)} · {appointment.status}
                   </div>
                 </article>
               ))}
@@ -621,7 +621,7 @@ export function AppointmentsPage() {
                     <option value="">Selecciona un tratamiento</option>
                     {treatments.map((treatment) => (
                       <option key={treatment.id} value={treatment.id}>
-                        {treatment.name} · {treatment.defaultDurationMinutes} min
+                       {treatment.name} · {treatment.defaultDurationMinutes} min · {formatPrice(treatment.basePrice)}
                       </option>
                     ))}
                   </select>
