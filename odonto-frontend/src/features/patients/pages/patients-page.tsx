@@ -48,16 +48,14 @@ type Appointment = {
 type PatientSummary = {
   id: number;
   fullName: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
   totalAppointments: number;
   nextAppointment?: Appointment;
   lastAppointment?: Appointment;
   completedAppointments: number;
   pendingAppointments: number;
-  confirmedAppointments: number;
   cancelledAppointments: number;
-  noShowAppointments: number;
   dentists: string[];
   treatments: string[];
 };
@@ -275,22 +273,21 @@ function buildPatientsFromAppointments(appointments: Appointment[]) {
         (appointment) => appointment.status === "NO_SHOW"
       ).length;
 
-      return {
-        id: patientId,
-        fullName: firstAppointment.patientName,
-        totalAppointments: sorted.length,
-        nextAppointment: futureAppointments[0],
-        lastAppointment:
-          pastAppointments[pastAppointments.length - 1] ??
-          sorted[sorted.length - 1],
-        completedAppointments,
-        pendingAppointments,
-        confirmedAppointments,
-        cancelledAppointments,
-        noShowAppointments,
-        dentists,
-        treatments,
-      } satisfies PatientSummary;
+   return {
+     id: patientId,
+     fullName: firstAppointment.patientName,
+     email: undefined,
+     phone: undefined,
+     totalAppointments: sorted.length,
+     nextAppointment: futureAppointments[0],
+     lastAppointment:
+       pastAppointments[pastAppointments.length - 1] ?? sorted[sorted.length - 1],
+     completedAppointments,
+     pendingAppointments,
+     cancelledAppointments,
+     dentists,
+     treatments,
+   } satisfies PatientSummary;
     }
   );
 }

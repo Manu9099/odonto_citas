@@ -23,6 +23,12 @@ export type Appointment = {
   cancelledReason: string | null;
 };
 
+export type CalendarDayResponse = {
+  date: string;
+  label: string;
+  appointments: Appointment[];
+};
+
 export type CreateAppointmentPayload = {
   dentistId: number;
   scheduledAt: string;
@@ -30,12 +36,38 @@ export type CreateAppointmentPayload = {
   notes?: string;
 };
 
-export async function createAppointment(payload: CreateAppointmentPayload) {
+export async function getMyAppointments(): Promise<Appointment[]> {
+  const { data } = await api.get<Appointment[]>("/appointments/me");
+  return data;
+}
+
+export async function getCalendarDay(date: string): Promise<CalendarDayResponse> {
+  const { data } = await api.get<CalendarDayResponse>("/appointments/calendar/day", {
+    params: { date },
+  });
+
+  return data;
+}
+
+export async function createAppointment(
+  payload: CreateAppointmentPayload
+): Promise<Appointment> {
   const { data } = await api.post<Appointment>("/appointments", payload);
   return data;
 }
 
-export async function getMyAppointments() {
-  const { data } = await api.get<Appointment[]>("/appointments/me");
+export async function updateAppointmentStatus(
+  appointmentId: number,
+  status: AppointmentStatus,
+  cancelledReason?: string
+): Promise<Appointment> {
+  const { data } = await api.patch<Appointment>(
+    `/appointments/${appointmentId}/status`,
+    {
+      status,
+      cancelledReason,
+    }
+  );
+
   return data;
 }

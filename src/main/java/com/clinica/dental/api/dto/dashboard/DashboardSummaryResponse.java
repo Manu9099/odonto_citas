@@ -10,14 +10,11 @@ public record DashboardSummaryResponse(
         Long completedAppointments,
         Long cancelledAppointments,
         Long noShowAppointments,
-
         Long paidAppointments,
         Long unpaidAppointments,
         Long pendingPayments,
-
         BigDecimal approvedRevenue,
         BigDecimal pendingRevenue,
-
         List<PaymentStatusSummaryResponse> paymentsByStatus,
         List<DashboardDayRevenueResponse> revenueByDay
 ) {

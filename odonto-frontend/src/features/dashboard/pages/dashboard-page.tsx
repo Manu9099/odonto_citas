@@ -102,18 +102,14 @@ function StatCard({
   );
 }
 
+import { getDashboardSummary } from "../api/dashboard.api";
+import type { DashboardSummary, PaymentStatus } from "../api/dashboard.api";
+
 export function DashboardPage() {
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery<DashboardSummary>({
-    queryKey: ["dashboard-summary"],
-    queryFn: async () => {
-      const response = await api.get<DashboardSummary>("/dashboard/summary");
-      return response.data;
-    },
-  });
+const { data, isLoading, isError } = useQuery<DashboardSummary>({
+  queryKey: ["dashboard-summary"],
+  queryFn: getDashboardSummary,
+});
 
   const revenueByDay =
     data?.revenueByDay.map((item) => ({
